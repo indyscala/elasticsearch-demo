@@ -1,0 +1,2 @@
+# elasticsearch-from-scala #
+
