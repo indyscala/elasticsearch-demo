@@ -6,6 +6,12 @@ import com.sksamuel.elastic4s.FieldType._
 
 import com.typesafe.scalalogging.slf4j.Logging
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{Future, Await}
+import scala.concurrent.duration._
+
+import org.elasticsearch.action.admin.indices.create.CreateIndexResponse
+import org.elasticsearch.action.index.IndexResponse
 import org.elasticsearch.common.settings.{ImmutableSettings,Settings}
 
 object IndexImagesWithElastic4s extends Logging {
@@ -23,14 +29,14 @@ object IndexImagesWithElastic4s extends Logging {
   }
 
   def indexImages(imageList: List[Either[ImageWithError,ImageWithData]]) {
-    createIndexWithMappings
+    Await.result(createIndexWithMappings, 3 seconds)
 
-    for (imageOrError <- imageList) {
-      indexImage(imageOrError)
-    }
+    val futures = for (imageOrError <- imageList) yield indexImage(imageOrError)
+    Await.result(Future.sequence(futures), 10 seconds)
   }
 
-  def createIndexWithMappings() {
+  def createIndexWithMappings(): Future[CreateIndexResponse] = {
+    client.deleteIndex("images")
     client.execute {
       create index "images" shards 2 replicas 1 mappings (
         "exif" as (
@@ -42,7 +48,7 @@ object IndexImagesWithElastic4s extends Logging {
     }
   }
 
-  def indexImage(image: Either[ImageWithError,ImageWithData]) {
+  def indexImage(image: Either[ImageWithError,ImageWithData]): Future[IndexResponse] = {
     val idx = index.into("images/exif")
     val doc = image match {
       case Left(img) => idx fields (
@@ -52,12 +58,16 @@ object IndexImagesWithElastic4s extends Logging {
       case Right(img) => idx fields (
         "filename" -> img.image.filename,
         "path" -> img.image.path,
-        "focalLength" -> img.focalLength.getOrElse(Nil)
+        "focalLength" -> img.focalLength.getOrElse(null)
       )
     }
-    val fn = image.fold(_.image.filename, _.image.filename)
+    val fn = image.fold(filenameWithErrorMsg(_), _.image.filename)
     logger.debug(s"Indexing $fn")
     client.execute { doc }
+  }
+
+  def filenameWithErrorMsg(imgErr: ImageWithError): String = {
+    s"${imgErr.image.filename} (error ${imgErr.throwable.getMessage})"
   }
 
 

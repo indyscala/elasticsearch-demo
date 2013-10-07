@@ -1,6 +1,7 @@
 package com.bfritz.example.elasticsearchfromscala.images
 
-import com.drew.metadata.exif.{ExifSubIFDDescriptor,ExifSubIFDDirectory}
+import com.drew.metadata.exif.{ExifIFD0Directory,ExifSubIFDDirectory}
+import com.github.nscala_time.time.Imports._
 import com.typesafe.scalalogging.slf4j.Logging
 
 import java.io.File
@@ -9,7 +10,16 @@ import java.math.BigDecimal
 import scala.util.control.NonFatal
 
 case class Image(filename: String, path: String)
-case class ImageWithData(image: Image, focalLength: Option[BigDecimal])
+case class Camera(make: String, model: String)
+case class LonLat(longitude: BigDecimal, latitude: BigDecimal)
+case class Taken(timestamp: DateTime, location: Option[LonLat])
+
+case class ImageWithData(
+  image: Image,
+  camera: Camera,
+  taken: Taken,
+  focalLength: Option[BigDecimal])
+
 case class ImageWithError(image: Image, throwable: Throwable)
 
 object ProcessImages extends Logging {
@@ -25,24 +35,41 @@ object ProcessImages extends Logging {
 
   def extractMetadata(image: File): Either[ImageWithError,ImageWithData] = {
     import com.drew.imaging.ImageMetadataReader
+    import com.drew.metadata.Metadata
+
+    def extractCamera(md: Metadata): Camera = {
+      val dir = md.getDirectory(classOf[ExifIFD0Directory])
+      Camera(
+        dir.getString(ExifIFD0Directory.TAG_MAKE),
+        dir.getString(ExifIFD0Directory.TAG_MODEL))
+    }
+
+    def extractTaken(md: Metadata): Taken = {
+      val dir = md.getDirectory(classOf[ExifIFD0Directory])
+      Taken(
+        new DateTime(dir.getDate(ExifIFD0Directory.TAG_DATETIME)),
+        None)
+    }
+
+    def extractFocalLength(md: Metadata): Option[BigDecimal] = {
+      val dir = md.getDirectory(classOf[ExifSubIFDDirectory])
+      Option(dir.getString(ExifSubIFDDirectory.TAG_FOCAL_LENGTH)).map(new BigDecimal(_))
+    }
 
     logger.trace(s"Processing ${image.getName}")
-    try {
+    val img = Image(image.getName, image.getParent)
+    val dataOrError = try {
       val meta = ImageMetadataReader.readMetadata(image)
-      val exifDir = meta.getDirectory(classOf[ExifSubIFDDirectory])
-      val exifData = new ExifSubIFDDescriptor(exifDir)
-      val focalLength = extractFocalLength(exifData)
-      Right(ImageWithData(Image(image.getName, image.getParent), focalLength))
+      Right(ImageWithData(
+        img,
+        extractCamera(meta),
+        extractTaken(meta),
+        extractFocalLength(meta)))
     } catch {
       case NonFatal(e) =>
-        Left(ImageWithError(Image(image.getName, image.getParent), e))
+        Left(ImageWithError(img, e))
     }
-  }
-
-  def extractFocalLength(exifData: ExifSubIFDDescriptor): Option[BigDecimal] = {
-    // typical focal length string: 55.0 mm
-    val P = """^([0-9\.]+)\s*mm$""".r
-    val focalLengthString = exifData.getFocalLengthDescription
-    P.findFirstMatchIn(focalLengthString).map(_ group 1).map(new BigDecimal(_))
+    logger.trace(s"Image: $dataOrError")
+    dataOrError
   }
 }
