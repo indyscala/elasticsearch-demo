@@ -73,7 +73,8 @@ libraryDependencies ++= Seq (
   , "org.scalatest" % "scalatest_2.10" % "2.0.M6-SNAP36" % "test"
   , "org.scalamock" %% "scalamock-scalatest-support" % "3.0.1" % "test"
   // -- Logging --
-  ,"ch.qos.logback" % "logback-classic" % "1.0.13"
+  , "com.typesafe" %% "scalalogging-slf4j" % "1.0.1"
+  , "ch.qos.logback" % "logback-classic" % "1.0.13"
   // -- Akka --
   //,"com.typesafe.akka" %% "akka-testkit" % "2.2.1" % "test"
   //,"com.typesafe.akka" %% "akka-actor" % "2.2.1"
