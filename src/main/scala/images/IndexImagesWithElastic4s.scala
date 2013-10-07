@@ -7,10 +7,6 @@ import com.typesafe.scalalogging.slf4j.Logging
 
 import org.elasticsearch.common.settings.{ImmutableSettings,Settings}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Future, Await}
-import scala.concurrent.duration._
-
 object IndexImagesWithElastic4s extends Logging {
   private val ClusterName = Option(System.getenv("ES_CLUSTER")).getOrElse("3node")
 
@@ -25,13 +21,10 @@ object IndexImagesWithElastic4s extends Logging {
     indexImages(ProcessImages.process(args))
   }
 
-  def indexImages(imageList: List[Future[Either[ImageWithError,ImageWithData]]]) {
-    for (
-      futures <- imageList;
-      imageOrError <- futures) {
+  def indexImages(imageList: List[Either[ImageWithError,ImageWithData]]) {
+    for (imageOrError <- imageList) {
       indexImage(imageOrError)
     }
-    Await.result(Future.sequence(imageList), 10 seconds)
   }
 
   def indexImage(image: Either[ImageWithError,ImageWithData]) {
@@ -49,7 +42,7 @@ object IndexImagesWithElastic4s extends Logging {
     }
     val fn = image.fold(_.image.filename, _.image.filename)
     logger.debug(s"Indexing $fn")
-    client execute { doc }
+    client.execute { doc }
   }
 
 
