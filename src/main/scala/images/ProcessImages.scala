@@ -1,6 +1,6 @@
 package com.bfritz.example.elasticsearchfromscala.images
 
-import com.drew.metadata.exif.{ExifIFD0Directory,ExifSubIFDDirectory}
+import com.drew.metadata.exif.{GpsDirectory, ExifIFD0Directory, ExifSubIFDDirectory}
 import com.github.nscala_time.time.Imports._
 import com.typesafe.scalalogging.slf4j.Logging
 
@@ -11,7 +11,7 @@ import scala.util.control.NonFatal
 
 case class Image(filename: String, path: String)
 case class Camera(make: String, model: String)
-case class LonLat(longitude: BigDecimal, latitude: BigDecimal)
+case class LonLat(longitude: Double, latitude: Double)
 case class Taken(timestamp: DateTime, location: Option[LonLat])
 
 case class ImageWithData(
@@ -45,10 +45,19 @@ object ProcessImages extends Logging {
     }
 
     def extractTaken(md: Metadata): Taken = {
-      val dir = md.getDirectory(classOf[ExifIFD0Directory])
+      val exifDir = md.getDirectory(classOf[ExifIFD0Directory])
+      val gpsDir = md.getDirectory(classOf[GpsDirectory])
+
       Taken(
-        new DateTime(dir.getDate(ExifIFD0Directory.TAG_DATETIME)),
-        None)
+        new DateTime(exifDir.getDate(ExifIFD0Directory.TAG_DATETIME)),
+        location(gpsDir))
+    }
+
+    def location(gps: GpsDirectory): Option[LonLat] = {
+      import com.drew.lang.GeoLocation
+
+      def geoToLonLat(geo: GeoLocation) = LonLat(geo.getLongitude, geo.getLatitude)
+      Option(gps.getGeoLocation()).map(geoToLonLat)
     }
 
     def extractFocalLength(md: Metadata): Option[BigDecimal] = {

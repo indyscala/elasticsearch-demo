@@ -12,6 +12,7 @@ import scala.concurrent.duration._
 
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse
 import org.elasticsearch.action.index.IndexResponse
+import org.elasticsearch.common.geo.GeoPoint
 import org.elasticsearch.common.settings.{ImmutableSettings,Settings}
 
 object IndexImagesWithElastic4s extends Logging {
@@ -40,8 +41,10 @@ object IndexImagesWithElastic4s extends Logging {
     client.execute {
       create index "images" shards 2 replicas 1 mappings (
         "exif" as (
+          field("taken") typed DateType,
           field("filename") typed StringType,
           field("path") typed StringType,
+          field("location") typed GeoPointType,
           field("focalLength") typed DoubleType
         )
       )
@@ -58,12 +61,20 @@ object IndexImagesWithElastic4s extends Logging {
       case Right(img) => idx fields (
         "filename" -> img.image.filename,
         "path" -> img.image.path,
+        "taken" -> img.taken.timestamp,
+        "cameraMake" -> img.camera.make,
+        "cameraModel" -> img.camera.model,
+        "location" -> img.taken.location.map(toGeoPoint).getOrElse(null),
         "focalLength" -> img.focalLength.getOrElse(null)
       )
     }
     val fn = image.fold(filenameWithErrorMsg(_), _.image.filename)
     logger.debug(s"Indexing $fn")
     client.execute { doc }
+  }
+
+  def toGeoPoint(cc: LonLat): GeoPoint = {
+    new GeoPoint(cc.latitude, cc.longitude)
   }
 
   def filenameWithErrorMsg(imgErr: ImageWithError): String = {
