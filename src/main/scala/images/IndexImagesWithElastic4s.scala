@@ -2,6 +2,7 @@ package com.bfritz.example.elasticsearchfromscala.images
 
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
+import com.sksamuel.elastic4s.FieldType._
 
 import com.typesafe.scalalogging.slf4j.Logging
 
@@ -22,8 +23,22 @@ object IndexImagesWithElastic4s extends Logging {
   }
 
   def indexImages(imageList: List[Either[ImageWithError,ImageWithData]]) {
+    createIndexWithMappings
+
     for (imageOrError <- imageList) {
       indexImage(imageOrError)
+    }
+  }
+
+  def createIndexWithMappings() {
+    client.execute {
+      create index "images" shards 2 replicas 1 mappings (
+        "exif" as (
+          field("filename") typed StringType,
+          field("path") typed StringType,
+          field("focalLength") typed DoubleType
+        )
+      )
     }
   }
 
