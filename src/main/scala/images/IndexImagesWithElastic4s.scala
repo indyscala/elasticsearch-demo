@@ -65,6 +65,7 @@ object IndexImagesWithElastic4s extends Logging {
         "cameraMake" -> img.camera.make,
         "cameraModel" -> img.camera.model,
         "location" -> img.taken.location.map(toGeoPoint).getOrElse(null),
+        "locForKibana" -> img.taken.location.map(toLatLonString).getOrElse(null),
         "focalLength" -> img.focalLength.getOrElse(null)
       )
     }
@@ -75,6 +76,10 @@ object IndexImagesWithElastic4s extends Logging {
 
   def toGeoPoint(cc: LonLat): GeoPoint = {
     new GeoPoint(cc.latitude, cc.longitude)
+  }
+
+  def toLatLonString(cc: LonLat): String = {
+    "%s, %s".format(cc.latitude, cc.longitude)
   }
 
   def filenameWithErrorMsg(imgErr: ImageWithError): String = {
