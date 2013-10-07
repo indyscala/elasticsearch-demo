@@ -51,7 +51,7 @@ scalacOptions <++= scalaVersion map { sv =>
     ,"-feature"
     ,"-language:postfixOps"
     // "-language:reflectiveCalls",
-    // "-language:implicitConversions"
+    ,"-language:implicitConversions"
     // "-language:higherKinds",
     // "-language:existentials",
     // "-language:experimental.macros",
@@ -87,6 +87,8 @@ libraryDependencies ++= Seq (
   //,"io.spray" % "spray-testkit" % "1.2-20130801" % "test"
   // -- json --
   //,"org.json4s" %% "json4s-native" % "3.2.5"
+  // -- image processing --
+  , "com.drewnoakes" % "metadata-extractor" % "2.6.2"
 )
 
 /* you may need these repos */
