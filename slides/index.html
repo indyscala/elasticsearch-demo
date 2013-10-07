@@ -4,7 +4,7 @@
 	<head>
 		<meta charset="utf-8">
 
-		<title>Using ElasticSearch from Scala</title>
+		<title>ElasticSearch, Scala and Kibana</title>
 
 		<meta name="author" content="Brad Fritz">
 
@@ -36,10 +36,178 @@
 			<div class="slides">
 
 				<section>
-          <h1>Using ElasticSearch from Scala</h1>
+          <h1>ElasticSearch, Scala and Kibana</h1>
 					<p>
 						<small>By <a href="http://bradfritz.net/">Brad Fritz</a> / <a href="http://twitter.com/bfritz">@bfritz</a></small>
 					</p>
+				</section>
+
+        <section data-markdown>
+          ## ElasticSearch is...
+
+          * [Lucene](http://lucene.apache.org/) + clustering
+          * [Lucene](http://lucene.apache.org/) + REST
+          * Google for *your* data
+          * adhoc dashboards for your data (with Kibana)
+          * The data store behind...
+        </section>
+
+        <section data-markdown>
+          ![Kibana Screenshot](images/kibana3-1.png)
+        </section>
+
+        <section data-markdown>
+          ![Kibana Screenshot](images/kibana3-2.png)
+        </section>
+
+        <section data-markdown>
+          ![Kibana Screenshot](images/kibana3-3.png)
+        </section>
+
+        <section data-markdown>
+          ![Kibana Screenshot](images/kibana3-4map.png)
+        </section>
+
+        <section data-markdown>
+          Kibana screenshots stolen shamelessly from
+          [Jordan Sissel](https://twitter.com/jordansissel)'s
+          [PuppetConf slides](http://logstash.objects.dreamhost.com/presentations/logstash-puppetconf-2013/index.html).
+
+          Credit to [Rashid Khan](https://github.com/rashidkpc/)
+          for making [Kibana](http://www.elasticsearch.org/overview/kibana/)
+          look so good.
+        </section>
+
+        <section data-markdown>
+          ## Lucene + clustering + REST
+          ![clustering](images/cluster_info_in_elastic_hq.png)
+
+              $ curl -XGET http://localhost:9200/_cluster/health?pretty=true
+              {
+                "cluster_name" : "3node",
+                "status" : "green",
+                "timed_out" : false,
+                "number_of_nodes" : 3,
+                [..] 
+              }
+        </section>
+
+        <section data-markdown>
+          ## [REST - index a document](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/docs-index_.html)
+
+              $ curl -XPUT 'http://localhost:9200/twitter/tweet/1' -d '{
+                  "user" : "kimchy",
+                  "post_date" : "2009-11-15T14:12:12",
+                  "message" : "trying out Elastic Search"
+              }'
+
+              {
+                "ok" : true,
+                "_index" : "twitter",
+                "_type" : "tweet",
+                "_id" : "1",
+                "_version" : 1
+              }
+        </section>
+
+        <section data-markdown>
+          ## [REST - get by ID](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/docs-get.html)
+
+              $ curl -XGET 'http://localhost:9200/twitter/tweet/1'
+
+              {
+                "_index" : "twitter",
+                 "_type" : "tweet",
+                 "_id" : "1",
+                 "_source" : {
+                   "user" : "kimchy",
+                   "postDate" : "2009-11-15T14:12:12",
+                   "message" : "trying out Elastic Search"
+                }
+              }
+        </section>
+
+        <section data-markdown>
+          ## [REST - search](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/search.html)
+
+              $ curl -XGET 'http://localhost:9200/twitter/_search?q=user:kimchy'
+
+          [or](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/search-request-body.html)
+
+              $ curl -XGET 'http://localhost:9200/twitter/tweet/_search' -d '{
+                "query" : {
+                  "term" : { "user" : "kimchy" }
+                }
+              }'
+        </section>
+
+        <section data-markdown>
+          ## Clustering - shards and replicas
+          ![clustering](images/shards_and_replication.png)
+				</section>
+
+        <section data-markdown>
+          ## [ElasticSearch - from Scala](http://www.elasticsearch.org/guide/en/elasticsearch/client/community/current/clients.html)
+
+          <table style="font-size: 70%;">
+            <tr>
+              <th/>
+              <th><a href="https://github.com/sksamuel/elastic4s/">elastic4s</a></th>
+              <th><a href="https://github.com/scalastuff/esclient">esclient</a></th>
+              <th><a href="https://github.com/bsadeh/scalastic">scalastic</a></th>
+            </tr>
+            <tr>
+              <th>last commit:</th>
+              <td>yesterday</td>
+              <td>8 months ago</td>
+              <td>24 days ago</td>
+            </tr>
+            <tr>
+              <th>last release:</th>
+              <td>yesterday</td>
+              <td>Feb 2013</td>
+              <td>Aug 2013</td>
+            </tr>
+            <tr>
+              <th>license:</th>
+              <td>APLv2</td>
+              <td>APLv2</td>
+              <td>APLv2</td>
+            </tr>
+            <tr>
+              <th>notes:</th>
+              <td>DSL (pimped Java client)</td>
+              <td>magnet pattern</td>
+              <td>thin Java client wrapper</td>
+            </tr>
+          </table>
+
+          All three wrap Java client.
+				</section>
+
+        <section data-markdown>
+          ## ElasticSearch - from Scala
+
+          Or use [Dispatch](http://dispatch.databinder.net/Dispatch.html)
+          or your favorite HTTP client and JSON utilities.
+				</section>
+
+        <section data-markdown>
+          ## Image Indexing Demo
+          with [elastic4s](https://github.com/sksamuel/elastic4s/)
+
+          * JPEGs on disk from Nikon DSLR and Nexus S
+          * → [metadata-extractor](http://drewnoakes.com/code/exif/)
+          * → elastic4s
+          * → ElasticSearch (local 3 node cluster)
+          * plus [Kibana](http://www.elasticsearch.org/overview/kibana/)
+            and [ElasticHQ](http://elastichq.org/)
+				</section>
+
+        <section data-markdown>
+          ## Questions?
+
+          ### Code: [https://github.com/bfritz/indyscala-elasticsearch/](https://github.com/bfritz/indyscala-elasticsearch/)
 				</section>
 			</div>
 
