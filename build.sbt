@@ -79,6 +79,8 @@ libraryDependencies ++= Seq (
   //,"com.typesafe.akka" %% "akka-testkit" % "2.2.1" % "test"
   //,"com.typesafe.akka" %% "akka-actor" % "2.2.1"
   //,"com.typesafe.akka" %% "akka-slf4j" % "2.2.1"
+  // -- ElasticSearch --
+  , "com.sksamuel.elastic4s" %% "elastic4s" % "0.90.5.2"
   // -- Sql --
   //,"com.typesafe.slick" %% "slick" % "1.0.1"
   // -- Spray --
